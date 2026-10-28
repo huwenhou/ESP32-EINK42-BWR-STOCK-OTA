@@ -15,6 +15,7 @@
 #include <ArduinoJson.h>
 #include <GxEPD2_3C.h>
 #include <U8g2_for_Adafruit_GFX.h>
+#include "epd_ssd1619.h"
 #include "version.h"
 #include "config.h"
 // 数字字体由 CI 用 Barlow Condensed Bold 生成
@@ -46,7 +47,9 @@ GxEPD2_3C<GxEPD2_420c, GxEPD2_420c::HEIGHT / 4>
 GxEPD2_3C<GxEPD2_420c_GDEY042Z98, GxEPD2_420c_GDEY042Z98::HEIGHT / 4>
   dispSSD(GxEPD2_420c_GDEY042Z98(EPD_CS, EPD_DC, EPD_RST, EPD_BUSY));
 
-enum { PANEL_UC = 1, PANEL_SSD = 2 };
+EPD_SSD1619 dispK(EPD_CS, EPD_DC, EPD_RST, EPD_BUSY);   // SSD1619A 专用驱动
+
+enum { PANEL_UC = 1, PANEL_SSD = 2, PANEL_SSD_LIB = 3 };
 int panel = PANEL_UC;
 Adafruit_GFX* G = nullptr;
 U8G2_FOR_ADAFRUIT_GFX u8f;
@@ -385,7 +388,7 @@ void drawStatus() {
   cn(390 - cnW(v, CN_S), 23, v, CN_S, WHITE, false);
   cn(200 - cnW(statusL1, CN_L) / 2, 140, statusL1, CN_L, BLACK);
   cn(200 - cnW(statusL2, CN_S) / 2, 172, statusL2, CN_S, RED);
-  const char* pn = panel == PANEL_SSD ? "屏幕驱动 SSD1683" : "屏幕驱动 UC8176";
+  const char* pn = panel == PANEL_SSD ? "屏幕驱动 SSD1619A" : panel == PANEL_SSD_LIB ? "屏幕驱动 SSD1683" : "屏幕驱动 UC8176";
   cn(10, 290, pn, CN_S, BLACK, false);
 }
 
@@ -400,7 +403,8 @@ template <class D> void renderOn(D& d, DrawFn fn) {
   d.hibernate();
 }
 void render(DrawFn fn) {
-  if (panel == PANEL_SSD) renderOn(dispSSD, fn);
+  if (panel == PANEL_SSD) { dispK.fillScreen(WHITE); fn(); dispK.display(); }
+  else if (panel == PANEL_SSD_LIB) renderOn(dispSSD, fn);
   else renderOn(dispUC, fn);
 }
 void showStatus(const char* l1, const char* l2) {
@@ -491,7 +495,8 @@ void setup() {
   panel = detectPanel();
   SPI.end();
   SPI.begin(EPD_SCK, 12, EPD_MOSI, EPD_CS);
-  if (panel == PANEL_SSD) { dispSSD.init(115200, true, 2, false); G = &dispSSD; }
+  if (panel == PANEL_SSD) { dispK.begin(); dispK.setWaveTemp(WAVE_TEMP_C); G = &dispK; }
+  else if (panel == PANEL_SSD_LIB) { dispSSD.init(115200, true, 2, false); G = &dispSSD; }
   else                    { dispUC.init(115200, true, 2, false);  G = &dispUC; }
   u8f.begin(*G);
   u8f.setFontMode(1);
