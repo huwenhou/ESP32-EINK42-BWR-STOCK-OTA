@@ -7,9 +7,10 @@
 #define FW_BASE_URL     "https://io.huwenhou.com/ESP32-EINK42-BWR-STOCK-OTA"
 #define FW_FALLBACK_URL "https://huwenhou.github.io/ESP32-EINK42-BWR-STOCK-OTA"   // 主地址连不上时用
 
-// 每页停留时间（秒）。三色屏每次刷新约 15–20 秒、会闪烁，不宜太频繁
-#define PAGE_SECONDS_ACTIVE 180   // 有市场在交易时：3 分钟换一页
-#define PAGE_SECONDS_IDLE   900   // 全部休市时：15 分钟换一页
+// 有市场在交易时：每 15 分钟换一页，只轮播正在交易的市场
+#define PAGE_SECONDS_ACTIVE 900
+// 全部休市时屏幕不刷新，只在后台每 5 分钟查一次是否开盘（不刷屏）
+#define MARKET_POLL_SECONDS 300
 
 // 红色深度：强制控制器按这个温度（℃）选择刷新波形。
 // 数值越低，波形越长，红色越深、刷新越慢；设 0 则使用屏内温度传感器

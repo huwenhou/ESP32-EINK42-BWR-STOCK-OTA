@@ -81,6 +81,7 @@ char statusL1[48], statusL2[64];
 
 unsigned long lastShow = 0, lastOta = 0;
 bool everShown = false;
+bool wasOpen = false;   // 上一轮是否有市场在交易
 
 // ---------------------------------------------------------------------
 //  时间轴
@@ -483,10 +484,17 @@ void checkResetButton() {
 // ---------------------------------------------------------------------
 //  轮播：取下一页，失败就跳过，全部失败显示提示
 // ---------------------------------------------------------------------
-void showNext() {
+bool marketOpenFor(const IndexCfg& c) {
+  char lab[24]; bool open = false;
+  return marketInfo(c.mkt, lab, sizeof(lab), open) && open;
+}
+
+// 轮播下一页。onlyOpen = true 时跳过休市的市场，不为它们刷新屏幕
+void showNext(bool onlyOpen) {
   for (int tries = 0; tries < N_INDICES; tries++) {
     page = (page + 1) % N_INDICES;
     cfg = &INDICES[page];
+    if (onlyOpen && !marketOpenFor(*cfg)) continue;
     if (fetchIndex(*cfg)) {
       render(drawPage);
       if (RED_BOOST) render(drawPage);   // 第二遍让红色更深
@@ -494,7 +502,12 @@ void showNext() {
       return;
     }
   }
-  showStatus("行情获取失败", "稍后自动重试，请检查网络");
+  if (!everShown) showStatus("行情获取失败", "稍后自动重试，请检查网络");
+}
+
+// 重新拉取并刷新当前这一页（收盘时用，让屏幕停在收盘数据上）
+void refreshCurrent() {
+  if (page >= 0 && fetchIndex(*cfg)) render(drawPage);
 }
 
 void setup() {
@@ -530,8 +543,9 @@ void setup() {
 
   checkForUpdate();
   lastOta = millis();
-  showNext();
+  showNext(false);
   lastShow = millis();
+  wasOpen = anyMarketOpen();
 }
 
 // Wi-Fi 看门狗：断线后每 30 秒重连一次，连续断 10 分钟就重启
@@ -551,12 +565,22 @@ void wifiWatchdog() {
 void loop() {
   checkResetButton();
   wifiWatchdog();
-  unsigned long interval = (anyMarketOpen() ? PAGE_SECONDS_ACTIVE : PAGE_SECONDS_IDLE) * 1000UL;
-  if (!everShown) interval = 60UL * 1000UL;   // 一页都没成功时每分钟重试
-  if (millis() - lastShow >= interval) {
-    if (millis() - lastOta >= OTA_INTERVAL_MS) { lastOta = millis(); checkForUpdate(); }
-    showNext();
-    lastShow = millis();
+  unsigned long now = millis();
+  static unsigned long lastPoll = 0;
+
+  // 固件升级检查与屏幕刷新无关，单独每 10 分钟一次
+  if (now - lastOta >= OTA_INTERVAL_MS) { lastOta = now; checkForUpdate(); }
+
+  if (!everShown) {                                   // 一页都没成功时每分钟重试
+    if (now - lastShow >= 60UL * 1000UL) { showNext(false); lastShow = millis(); }
+  } else if (anyMarketOpen()) {
+    // 有市场在交易：只轮播正在交易的市场，每 PAGE_SECONDS_ACTIVE 换一页；刚开盘时立即刷新
+    if (!wasOpen || now - lastShow >= PAGE_SECONDS_ACTIVE * 1000UL) { showNext(true); lastShow = millis(); }
+    wasOpen = true;
+  } else {
+    // 全部休市：屏幕不刷新。刚收盘时把当前页刷成收盘数据，之后只在后台查看是否开盘
+    if (wasOpen) { refreshCurrent(); wasOpen = false; lastPoll = millis(); }
+    if (now - lastPoll >= MARKET_POLL_SECONDS * 1000UL) { lastPoll = millis(); fetchIndex(INDICES[0]); }
   }
   delay(100);
 }
