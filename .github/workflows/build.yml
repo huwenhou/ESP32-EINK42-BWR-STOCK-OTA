@@ -1,0 +1,97 @@
+name: Build & publish firmware
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "firmware/**"
+      - "web/**"
+      - ".github/workflows/build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set firmware version = build number
+        run: |
+          echo "#pragma once" > firmware/stock/version.h
+          echo "#define FW_VERSION ${{ github.run_number }}" >> firmware/stock/version.h
+
+      - uses: arduino/setup-arduino-cli@v2
+
+      - name: Install ESP32 core & libraries
+        run: |
+          arduino-cli config init
+          arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
+          arduino-cli lib install "GxEPD2" "Adafruit GFX Library" "WiFiManager" "U8g2_for_Adafruit_GFX" "ArduinoJson"
+
+      - name: Generate Barlow Condensed digit fonts
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq libfreetype-dev
+          FC=$(find ~/Arduino/libraries -path "*fontconvert/fontconvert.c" | head -1)
+          gcc -O2 -I/usr/include/freetype2 "$FC" -lfreetype -o fontconvert
+          curl -sSL -o BarlowCondensed-Bold.ttf https://github.com/google/fonts/raw/main/ofl/barlowcondensed/BarlowCondensed-Bold.ttf
+          # 只要空格到冒号（数字、逗号、点、加减号、百分号）
+          for s in 30 12 9; do
+            ./fontconvert BarlowCondensed-Bold.ttf $s 32 58 > firmware/stock/BarlowCondensed_Bold${s}pt7b.h
+          done
+          head -c 300 firmware/stock/BarlowCondensed_Bold9pt7b.h
+
+      - name: Compile
+        run: |
+          set -o pipefail
+          arduino-cli compile \
+            --fqbn esp32:esp32:esp32:PartitionScheme=min_spiffs \
+            --output-dir build \
+            firmware/stock 2>&1 | tee compile.log || {
+              grep -iE "error|exceed|overflow|not declared|no such|no matching|was not|Sketch uses" compile.log | head -25 | while IFS= read -r l; do echo "::error::$l"; done
+              exit 1
+            }
+          grep -E "Sketch uses|Global variables" compile.log | while IFS= read -r l; do echo "::notice::$l"; done
+
+      - name: Prepare site
+        run: |
+          mkdir -p site
+          cp build/stock.ino.bin site/firmware.bin
+          cp build/stock.ino.merged.bin site/firmware.merged.bin
+          echo "${{ github.run_number }}" > site/version.txt
+          cat > site/manifest.json <<EOF
+          {
+            "name": "ESP32 三色墨水屏行情板",
+            "version": "${{ github.run_number }}",
+            "new_install_prompt_erase": true,
+            "builds": [
+              { "chipFamily": "ESP32",
+                "parts": [ { "path": "firmware.merged.bin", "offset": 0 } ] }
+            ]
+          }
+          EOF
+          cp web/index.html site/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

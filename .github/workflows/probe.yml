@@ -2,8 +2,6 @@ name: Probe data APIs
 
 on:
   workflow_dispatch:
-  push:
-    paths: [".github/workflows/probe.yml"]
 
 jobs:
   probe:

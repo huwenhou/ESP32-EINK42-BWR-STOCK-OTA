@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>行情板刷机</title>
+<script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+<style>
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+         max-width: 560px; margin: 48px auto; padding: 0 16px; line-height: 1.7; color: #222; }
+  h1 { font-size: 24px; }
+  h1 span { color: #C4161C; }
+  ol { padding-left: 20px; }
+  .box { margin: 28px 0; }
+  .muted { color: #777; font-size: 14px; }
+</style>
+</head>
+<body>
+  <h1>4.2" 三色墨水屏 · <span>行情板</span> 首次刷机</h1>
+  <ol>
+    <li>用电脑上的 <b>Chrome 或 Edge</b> 打开本页（Safari、iPad 不支持）</li>
+    <li>USB 线连接驱动板</li>
+    <li>点下面的按钮，选择驱动板的串口，点“安装”</li>
+    <li>完成后屏幕提示连接热点 <b>Stock-Setup</b>，用手机连上设置 Wi-Fi</li>
+  </ol>
+  <div class="box">
+    <esp-web-install-button manifest="manifest.json"></esp-web-install-button>
+  </div>
+  <p class="muted">找不到串口：装 CP210x 或 CH340 驱动。一直连不上：按住板子 BOOT 键再点安装。<br>
+  刷完之后无需电脑，更新会通过 Wi-Fi 自动完成。</p>
+</body>
+</html>
