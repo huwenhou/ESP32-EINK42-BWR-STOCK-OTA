@@ -515,6 +515,8 @@ void setup() {
     ESP.restart();
   }
 
+  WiFi.setSleep(false);          // 关闭 Wi-Fi 省电模式：很多路由器会因此断开空闲设备
+  WiFi.setAutoReconnect(true);
   configTzTime("CST-8", "ntp.aliyun.com", "ntp.tencent.com", "cn.pool.ntp.org");
 
   checkForUpdate();
@@ -523,8 +525,23 @@ void setup() {
   lastShow = millis();
 }
 
+// Wi-Fi 看门狗：断线后每 30 秒重连一次，连续断 10 分钟就重启
+void wifiWatchdog() {
+  static unsigned long offSince = 0, lastTry = 0;
+  if (WiFi.status() == WL_CONNECTED) { offSince = 0; return; }
+  unsigned long now = millis();
+  if (offSince == 0) { offSince = now; lastTry = now; Serial.println("WiFi lost"); }
+  if (now - lastTry >= 30000UL) {
+    lastTry = now;
+    WiFi.disconnect();
+    WiFi.begin();
+  }
+  if (now - offSince >= 10UL * 60UL * 1000UL) ESP.restart();
+}
+
 void loop() {
   checkResetButton();
+  wifiWatchdog();
   unsigned long interval = (anyMarketOpen() ? PAGE_SECONDS_ACTIVE : PAGE_SECONDS_IDLE) * 1000UL;
   if (!everShown) interval = 60UL * 1000UL;   // 一页都没成功时每分钟重试
   if (millis() - lastShow >= interval) {
