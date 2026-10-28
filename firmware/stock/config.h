@@ -10,6 +10,9 @@
 #define PAGE_SECONDS_ACTIVE 180   // 有市场在交易时：3 分钟换一页
 #define PAGE_SECONDS_IDLE   900   // 全部休市时：15 分钟换一页
 
+// 红色加深：每页连续刷新两遍，红色粒子驱动更充分、颜色更饱和（换页闪烁时间加倍）
+#define RED_BOOST 1
+
 // 屏幕驱动：0 = 开机自动识别；1 = UC8176 系列(GDEW042Z15)；2 = SSD1683 系列(GDEY042Z98)
 #define FORCE_PANEL 0
 

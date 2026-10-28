@@ -476,6 +476,7 @@ void showNext() {
     cfg = &INDICES[page];
     if (fetchIndex(*cfg)) {
       render(drawPage);
+      if (RED_BOOST) render(drawPage);   // 第二遍让红色更深
       everShown = true;
       return;
     }
