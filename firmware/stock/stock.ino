@@ -22,6 +22,8 @@
 #include "BarlowCondensed_Bold12pt7b.h"
 #include "BarlowCondensed_Bold9pt7b.h"
 
+typedef void (*DrawFn)();   // 放在最前面，避免 Arduino 自动生成的函数声明找不到它
+
 #define NUM_L &BarlowCondensed_Bold30pt7b   // 大点位
 #define NUM_M &BarlowCondensed_Bold12pt7b   // 涨跌
 #define NUM_S &BarlowCondensed_Bold9pt7b    // 底栏数值
@@ -388,7 +390,6 @@ void drawStatus() {
 // ---------------------------------------------------------------------
 //  渲染（两种驱动共用一套画法）
 // ---------------------------------------------------------------------
-typedef void (*DrawFn)();
 template <class D> void renderOn(D& d, DrawFn fn) {
   d.setRotation(0);
   d.setFullWindow();
