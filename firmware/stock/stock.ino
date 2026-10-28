@@ -37,6 +37,7 @@ typedef void (*DrawFn)();   // 放在最前面，避免 Arduino 自动生成的�
 #define EPD_CS   15
 #define EPD_SCK  13
 #define EPD_MOSI 14
+#define AP_NAME "Robbie's Stock Board"
 #define BOOT_BTN 0   // 运行中长按 5 秒 = 清除 Wi-Fi 设置
 
 // 两种常见 4.2" 三色屏驱动，开机识别后只用其中一个
@@ -225,6 +226,7 @@ bool fetchIndex(const IndexCfg& c) {
 // 中文：点阵字体没有粗体，错开 1 像素重复画来加粗
 void cn(int x, int y, const char* s, const uint8_t* f, uint16_t c, bool bold = true) {
   u8f.setFont(f);
+  u8f.setFontMode(1);            // setFont 会把背景重置为不透明，必须每次重新设为透明
   u8f.setForegroundColor(c);
   int dyMax = (bold && f == CN_L) ? 1 : 0;
   for (int dx = 0; dx <= (bold ? 1 : 0); dx++)
@@ -494,14 +496,14 @@ void setup() {
   u8f.setFontMode(1);
   u8f.setFontDirection(0);
 
-  showStatus("正在连接 Wi-Fi", "首次使用请连接热点 Stock-Setup 配网");
+  showStatus("正在连接 Wi-Fi", "首次使用请用手机连接热点配网");
 
   WiFiManager wm;
   wm.setAPCallback([](WiFiManager*) {
-    showStatus("请连接热点 Stock-Setup", "在弹出的页面里选择 Wi-Fi 并输入密码");
+    showStatus("请连接热点 " AP_NAME, "在弹出的页面里选择 Wi-Fi 并输入密码");
   });
   wm.setConfigPortalTimeout(300);
-  if (!wm.autoConnect("Stock-Setup")) {
+  if (!wm.autoConnect(AP_NAME)) {
     showStatus("Wi-Fi 连接失败", "正在重启...");
     delay(3000);
     ESP.restart();
