@@ -4,7 +4,8 @@
 #pragma once
 
 // 固件发布地址（GitHub Pages）
-#define FW_BASE_URL "https://huwenhou.github.io/ESP32-EINK42-BWR-STOCK-OTA"
+#define FW_BASE_URL     "https://io.huwenhou.com/ESP32-EINK42-BWR-STOCK-OTA"
+#define FW_FALLBACK_URL "https://huwenhou.github.io/ESP32-EINK42-BWR-STOCK-OTA"   // 主地址连不上时用
 
 // 每页停留时间（秒）。三色屏每次刷新约 15–20 秒、会闪烁，不宜太频繁
 #define PAGE_SECONDS_ACTIVE 180   // 有市场在交易时：3 分钟换一页

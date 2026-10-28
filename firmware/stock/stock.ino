@@ -430,30 +430,38 @@ int detectPanel() {
 // ---------------------------------------------------------------------
 //  OTA
 // ---------------------------------------------------------------------
-long fetchRemoteVersion() {
+// 依次尝试主地址（自定义域名）和备用地址（github.io），返回可用地址的版本号
+const char* OTA_BASES[] = { FW_BASE_URL, FW_FALLBACK_URL };
+long fetchRemoteVersion(const char* base) {
   WiFiClientSecure client;
   client.setInsecure();
   HTTPClient http;
-  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);   // 换自定义域名后旧地址会 301 跳转
+  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
   http.setTimeout(15000);
-  String url = String(FW_BASE_URL) + "/version.txt?t=" + String(millis());
+  String url = String(base) + "/version.txt?t=" + String(millis());
   if (!http.begin(client, url)) return -1;
   long v = -1;
-  if (http.GET() == 200) { String b = http.getString(); b.trim(); v = b.toInt(); }
+  int code = http.GET();
+  if (code == 200) { String b = http.getString(); b.trim(); v = b.toInt(); }
+  else Serial.printf("%s version.txt HTTP %d\n", base, code);
   http.end();
   return v;
 }
 void checkForUpdate() {
   if (WiFi.status() != WL_CONNECTED) { WiFi.reconnect(); return; }
-  long remote = fetchRemoteVersion();
-  Serial.printf("local v%d, remote v%ld\n", FW_VERSION, remote);
-  if (remote <= FW_VERSION) return;
-  WiFiClientSecure client;
-  client.setInsecure();
-  httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-  httpUpdate.rebootOnUpdate(true);
-  if (httpUpdate.update(client, String(FW_BASE_URL) + "/firmware.bin") == HTTP_UPDATE_FAILED)
-    Serial.printf("Update failed: %s\n", httpUpdate.getLastErrorString().c_str());
+  for (const char* base : OTA_BASES) {
+    long remote = fetchRemoteVersion(base);
+    Serial.printf("local v%d, remote v%ld (%s)\n", FW_VERSION, remote, base);
+    if (remote < 0) continue;            // 这个地址连不上，换下一个
+    if (remote <= FW_VERSION) return;    // 已是最新
+    WiFiClientSecure client;
+    client.setInsecure();
+    httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    httpUpdate.rebootOnUpdate(true);
+    if (httpUpdate.update(client, String(base) + "/firmware.bin") == HTTP_UPDATE_FAILED)
+      Serial.printf("Update failed: %s\n", httpUpdate.getLastErrorString().c_str());
+    else return;
+  }
 }
 
 void checkResetButton() {

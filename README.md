@@ -18,7 +18,7 @@ web/index.html             网页刷机页
 ```
 
 ## 刷机
-电脑 Chrome 打开 https://huwenhou.github.io/ESP32-EINK42-BWR-STOCK-OTA ，点安装，选驱动板串口。
+电脑 Chrome 打开 https://io.huwenhou.com/ESP32-EINK42-BWR-STOCK-OTA ，点安装，选驱动板串口。
 之后连热点 **Robbie's Stock Board** 配 Wi-Fi。
 
 ## 更新
