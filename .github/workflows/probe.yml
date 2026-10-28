@@ -12,19 +12,18 @@ jobs:
       - name: Fetch samples
         run: |
           mkdir -p out
-          get() { curl -sS -m 20 -A "Mozilla/5.0" "$2" -o "out/$1" || echo "FAIL $2" > "out/$1"; }
+          get() { curl -sSL -m 20 -A "Mozilla/5.0" -w "\n[HTTP %{http_code} -> %{url_effective}]" "$2" -o "out/$1" || echo "FAIL $2" > "out/$1"; }
           get quote.txt   "http://qt.gtimg.cn/q=sh000001,sz399006,sz399001,hkHSI,usIXIC,usDJI,us.IXIC,us.DJI"
-          get m_sh.json   "http://web.ifzq.gtimg.cn/appstock/app/minute/query?code=sh000001"
-          get m_hk.json   "http://web.ifzq.gtimg.cn/appstock/app/hkMinute/query?code=hkHSI"
-          get m_hk2.json  "http://web.ifzq.gtimg.cn/appstock/app/minute/query?code=hkHSI"
-          get m_us.json   "http://web.ifzq.gtimg.cn/appstock/app/UsMinute/query?code=us.IXIC"
-          get m_us2.json  "http://web.ifzq.gtimg.cn/appstock/app/minute/query?code=usIXIC"
-          get m_us3.json  "http://web.ifzq.gtimg.cn/appstock/app/UsMinute/query?code=us.DJI"
+          get m_sh.json   "https://web.ifzq.gtimg.cn/appstock/app/minute/query?code=sh000001"
+          get m_hk.json   "https://web.ifzq.gtimg.cn/appstock/app/hkMinute/query?code=hkHSI"
+          get m_hk2.json  "https://web.ifzq.gtimg.cn/appstock/app/minute/query?code=hkHSI"
+          get m_us.json   "https://web.ifzq.gtimg.cn/appstock/app/UsMinute/query?code=us.IXIC"
+          get m_us2.json  "https://web.ifzq.gtimg.cn/appstock/app/minute/query?code=usIXIC"
+          get m_us3.json  "https://web.ifzq.gtimg.cn/appstock/app/UsMinute/query?code=us.DJI"
           for f in out/*; do
             n=$(basename $f)
             sz=$(wc -c < $f)
             # GBK → UTF-8 so annotations are readable
             body=$(iconv -f GBK -t UTF-8 "$f" 2>/dev/null || cat "$f")
-            echo "::notice title=$n ($sz bytes) head::$(echo "$body" | head -c 1500 | tr '\n' ' ')"
-            echo "::notice title=$n tail::$(echo "$body" | tail -c 400 | tr '\n' ' ')"
+            echo "::notice title=$n ($sz bytes)::$(echo "$body" | head -c 900 | tr '\n' ' ') ..... $(echo "$body" | tail -c 300 | tr '\n' ' ')"
           done
