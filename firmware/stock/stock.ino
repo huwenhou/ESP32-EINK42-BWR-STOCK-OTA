@@ -434,6 +434,7 @@ long fetchRemoteVersion() {
   WiFiClientSecure client;
   client.setInsecure();
   HTTPClient http;
+  http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);   // 换自定义域名后旧地址会 301 跳转
   http.setTimeout(15000);
   String url = String(FW_BASE_URL) + "/version.txt?t=" + String(millis());
   if (!http.begin(client, url)) return -1;
